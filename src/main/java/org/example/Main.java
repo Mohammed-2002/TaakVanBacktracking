@@ -13,18 +13,23 @@ public class Main {
     }
 
     public static void printRooster(ArrayList<Ronde>[] arry) {
-        int rows = arry[0].size(); // Aantal rijen is gelijk aan het aantal wedstrijden in de eerste ronde
-        int cols = arry.length; // Aantal kolommen is gelijk aan het aantal rondes
+        int rows = arry[0].size();
+        int cols = arry.length;
 
-        // Maak een 2D-array om het rooster op te slaan
+
         String[][] rooster = new String[rows][cols];
 
-        // Vul het rooster met de namen van de teams
+
         for (int rondeNummer = 0; rondeNummer < cols; rondeNummer++) {
             ArrayList<Ronde> ronde = arry[rondeNummer];
             for (int i = 0; i < rows; i++) {
                 Ronde wedstrijd = ronde.get(i);
-                rooster[i][rondeNummer] = wedstrijd.getEersteTeam() + " vs " + wedstrijd.getTweedeTeam();
+                    if (!wedstrijd.getEersteTeam().equals(" ")) {
+                        rooster[i][rondeNummer] = wedstrijd.getEersteTeam() + " vs " + wedstrijd.getTweedeTeam();
+                    }
+                    else{
+                        rooster[i][rondeNummer] = "LEEG";
+                    }
             }
         }
 
