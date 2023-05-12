@@ -2,48 +2,38 @@ package org.example;
 
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public class Main {
 
     public static void main(String[] args) {
-        ArrayList<Ronde>[] arry = spelverdeling(6, 5, 1, 6);
-        printRooster(arry);
+        Optional<String[][]> oplossing = spelverdeling(6, 5, 3, 4);
+        if(oplossing.isPresent()){
+            printRooster(oplossing.get());
+        }
+        else{
+            String stars = "*".repeat(100);
+            System.out.println(stars);
+            System.out.println("Er is geen oplossing gevonden, het aantal ploegen moet gelijk zijn aan het aantal spelletjes min één");
+            System.out.println(stars);
+        }
     }
 
-    public static void printRooster(ArrayList<Ronde>[] arry) {
-        int rows = arry[0].size();
-        int cols = arry.length;
+    public static void printRooster(String[][] oplossing) {
+        int aantalRijen = oplossing[0].length;
+        int aantalKolommen = oplossing.length;
 
-
-        String[][] rooster = new String[rows][cols];
-
-
-        for (int rondeNummer = 0; rondeNummer < cols; rondeNummer++) {
-            ArrayList<Ronde> ronde = arry[rondeNummer];
-            for (int i = 0; i < rows; i++) {
-                Ronde wedstrijd = ronde.get(i);
-                    if (!wedstrijd.getEersteTeam().equals(" ")) {
-                        rooster[i][rondeNummer] = wedstrijd.getEersteTeam() + " vs " + wedstrijd.getTweedeTeam();
-                    }
-                    else{
-                        rooster[i][rondeNummer] = "LEEG";
-                    }
-            }
-        }
-
-        // Print het rooster
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                System.out.print(String.format("%-25s", rooster[i][j])); // Elke cel heeft een breedte van 25 karakters
+        for (int i = 0; i < aantalKolommen; i++) {
+            for (int j = 0; j < aantalRijen; j++) {
+                System.out.printf("%-25s", oplossing[i][j]); // Elke cel heeft een breedte van 25 karakters
             }
             System.out.println();
         }
     }
 
 
-    public static ArrayList<String> getPloegen(int aantalPloegen) {
+    private static ArrayList<String> getPloegen(int aantalPloegen) {
         ArrayList<String> ploegen = new ArrayList<String>();
         for (int i = 0; i < aantalPloegen; i++) {
             char team = (char)('A' + i);
@@ -52,9 +42,9 @@ public class Main {
         return ploegen;
     }
 
-    public static ArrayList<String[]> getWedstrijdCombinaties(ArrayList<String> ploegen) {
-        ArrayList<String[]> wedstrijdCombinaties = new ArrayList<>();
+    private static ArrayList<String[]> getWedstrijdCombinaties(ArrayList<String> ploegen) {
 
+        ArrayList<String[]> wedstrijdCombinaties = new ArrayList<>();
         for (int i = 0; i < ploegen.size() - 1; i++) {
             for (int j = i + 1; j < ploegen.size(); j++) {
                 String[] wedstrijd = new String[]{ploegen.get(i), ploegen.get(j)};
@@ -64,7 +54,7 @@ public class Main {
         return wedstrijdCombinaties;
     }
 
-    public static ArrayList<Ronde>[] maakRondes(int aantalSpelletjes, int aantalRondes){
+    private static ArrayList<Ronde>[] maakRondes(int aantalSpelletjes, int aantalRondes){
         ArrayList<Ronde>[] rondes = new ArrayList[aantalSpelletjes];
         for (int i = 0; i < aantalSpelletjes; i++) {
             rondes[i] = new ArrayList<Ronde>();
@@ -75,28 +65,48 @@ public class Main {
         }
         return rondes;
     }
-    public static ArrayList<Ronde>[] spelverdeling(int aantalPloegen, int aantalSpelletjes, int dubbels, int aantalRondes){
+    public static Optional<String[][]> spelverdeling(int aantalPloegen, int aantalSpelletjes, int dubbels, int aantalRondes){
         ArrayList<Ronde>[] voorlopigeOplossing = maakRondes(aantalSpelletjes,aantalRondes);
         int xPositie = 0;
         int yPositie = 0;
         ArrayList<String> ploegNamen= getPloegen(aantalPloegen);
         ArrayList<String[]> combinaties = getWedstrijdCombinaties(ploegNamen);
         String[] huidigeCombinatie = combinaties.get(0);
-            try{
-                return getOplossing(ploegNamen, combinaties, aantalSpelletjes, dubbels, aantalRondes, voorlopigeOplossing, xPositie, yPositie,huidigeCombinatie);
-            }
-            catch (ArrayIndexOutOfBoundsException e){
-                return spelverdeling(aantalPloegen,aantalSpelletjes,dubbels,aantalRondes);
-            }
+                try {
+                    Optional<ArrayList<Ronde>[]> oplossing = getOplossing(ploegNamen, combinaties, aantalSpelletjes, dubbels, aantalRondes, voorlopigeOplossing, xPositie, yPositie, huidigeCombinatie);
+                    if (oplossing.isPresent()) {
+                        String[][] rooster = new String[aantalRondes][aantalSpelletjes];
+
+                        for (int i = 0; i < aantalSpelletjes; i++) {
+                            ArrayList<Ronde> spel = oplossing.get()[i];
+                            for (int j = 0; j < aantalRondes; j++) {
+                                Ronde wedstrijd = spel.get(j);
+                                if (wedstrijd.getEersteTeam() != null && !wedstrijd.getEersteTeam().equals(" ")) {
+                                    rooster[j][i] = wedstrijd.getEersteTeam() + " vs " + wedstrijd.getTweedeTeam();
+                                } else {
+                                    rooster[j][i] = "LEEG";
+                                }
+                            }
+                        }
+                        return Optional.of(rooster);
+                    } else {
+                        return Optional.empty();
+                    }
+                }catch (IndexOutOfBoundsException e){
+                    return spelverdeling(aantalPloegen,aantalSpelletjes,dubbels,aantalRondes + 1);
+                }
     }
 
-    private static ArrayList<Ronde>[] getOplossing(ArrayList<String> ploegen,ArrayList<String[]> combinaties, int aantalSpelletjes, int dubbels, int aantalRondes, ArrayList<Ronde>[] voorlopigeOplossing, int xPositie, int yPositie, String[] huidigeCombinatie) {
-        if(isMogelijk(combinaties, aantalSpelletjes,dubbels,aantalRondes,voorlopigeOplossing,xPositie,yPositie,huidigeCombinatie, ploegen)) {
+    private static Optional<ArrayList<Ronde>[]> getOplossing(ArrayList<String> ploegen,ArrayList<String[]> combinaties, int aantalSpelletjes, int dubbels, int aantalRondes, ArrayList<Ronde>[] voorlopigeOplossing, int xPositie, int yPositie, String[] huidigeCombinatie) {
+        if(aantalSpelletjes != ploegen.size() - 1){
+            return Optional.empty();
+        }
+        if(isMogelijk(dubbels,aantalRondes,voorlopigeOplossing,xPositie,yPositie,huidigeCombinatie, ploegen)) {
             kenDeCombinatiesToeAanDeRonde(huidigeCombinatie,voorlopigeOplossing[xPositie].get(yPositie));
 
             if(getDePloegenDieGeenDeelNemenAanDatSpel(xPositie, voorlopigeOplossing, ploegen).isEmpty() && xPositie == voorlopigeOplossing.length -1) {
 
-                return voorlopigeOplossing;
+                return Optional.of(voorlopigeOplossing);
             }
             else {
                 Ronde volgendeRonde = getVolgendeRonde(aantalRondes,voorlopigeOplossing,xPositie,yPositie);
@@ -131,7 +141,7 @@ public class Main {
     }
 
 
-    private static boolean isMogelijk( ArrayList<String[]> combinaties, int aantalSpelletjes, int dubbels, int aantalRondes, ArrayList<Ronde>[] voorlopigeOplossing, int xPositie, int yPositie, String[] huidigeCombinatie, ArrayList<String> ploegen) {
+    public static boolean isMogelijk(int dubbels, int aantalRondes, ArrayList<Ronde>[] voorlopigeOplossing, int xPositie, int yPositie, String[] huidigeCombinatie, ArrayList<String> ploegen) {
 
         Set<String> ploegenInEenKolom = new HashSet<>();
         for (Ronde ronde : voorlopigeOplossing[xPositie]) {
@@ -150,22 +160,17 @@ public class Main {
 
 
 
-        if(!heeftDePloegTegenDeAnderePloegGespeeld(huidigeCombinatie[0], huidigeCombinatie[1], voorlopigeOplossing) == false) return false;
+        if(!!heeftDePloegTegenDeAnderePloegGespeeld(dubbels, huidigeCombinatie[0], huidigeCombinatie[1], voorlopigeOplossing)) return false;
 
         if(yPositie == (aantalRondes - 1)){
-            if(getDePloegenDieGeenDeelNemenAanDatSpel(xPositie,voorlopigeOplossing,ploegen).size() == 2){
-                return true;
-            }
-            else{
-                return false;
-            }
+            return getDePloegenDieGeenDeelNemenAanDatSpel(xPositie, voorlopigeOplossing, ploegen).size() == 2;
         }
         else{
             return true;
         }
 
     }
-    private static ArrayList<String> getDePloegenDieGeenDeelNemenAanDatSpel(int xPositie,ArrayList<Ronde>[] voorlopigeOplossing, ArrayList<String> ploegen){
+    public static ArrayList<String> getDePloegenDieGeenDeelNemenAanDatSpel(int xPositie,ArrayList<Ronde>[] voorlopigeOplossing, ArrayList<String> ploegen){
         ArrayList<String> DePloegenDieDeelNemen = new ArrayList<>();
         for (Ronde ronde : voorlopigeOplossing[xPositie]) {
             DePloegenDieDeelNemen.add(ronde.getEersteTeam());
@@ -196,7 +201,7 @@ public class Main {
             return voorlopigeOplossing[xPositie].get(yPositie +1);
         }
     }
-    private static ArrayList<Ronde>[] BacktrackNaarDeVorigeRonde(ArrayList<String> ploegen,ArrayList<String[]> combinaties, int aantalSpelletjes, int dubbels, int aantalRondes, ArrayList<Ronde>[] voorlopigeOplossing, int xPositie, int yPositie, String[] huidigeCombinatie){
+    private static Optional<ArrayList<Ronde>[]> BacktrackNaarDeVorigeRonde(ArrayList<String> ploegen,ArrayList<String[]> combinaties, int aantalSpelletjes, int dubbels, int aantalRondes, ArrayList<Ronde>[] voorlopigeOplossing, int xPositie, int yPositie, String[] huidigeCombinatie){
 
         voorlopigeOplossing[xPositie].get(yPositie).setEersteTeam(null);
         voorlopigeOplossing[xPositie].get(yPositie).setTweedeTeam(null);
@@ -225,22 +230,20 @@ public class Main {
             return getOplossing(ploegen,combinaties,aantalSpelletjes,dubbels,aantalRondes,voorlopigeOplossing,xPositie,yPositie,combinaties.get(indexCombinatiesVorigeRonde + 1));
         }
     }
-    private static boolean heeftDePloegTegenDeAnderePloegGespeeld(String eerstePloeg, String tweedePloeg, ArrayList<Ronde>[] voorlopigeOplossing){
+    public static boolean heeftDePloegTegenDeAnderePloegGespeeld(int dubbels ,String eerstePloeg, String tweedePloeg, ArrayList<Ronde>[] voorlopigeOplossing){
+        int aantalKerenGespeeld = 0;
         for (ArrayList<Ronde> rondes : voorlopigeOplossing) {
             for (Ronde ronde : rondes) {
                 if(ronde.getEersteTeam() != null && ronde.getTweedeTeam() != null){
-                    if(ronde.getEersteTeam().equals(eerstePloeg) && ronde.getTweedeTeam().equals(tweedePloeg)){
-                        return true;
+                    if(ronde.getEersteTeam().equals(eerstePloeg) && ronde.getTweedeTeam().equals(tweedePloeg) || ronde.getEersteTeam().equals(tweedePloeg) && ronde.getTweedeTeam().equals(eerstePloeg)){
+                        aantalKerenGespeeld++;
+                        if(aantalKerenGespeeld == dubbels){
+                            return true;
+                        }
                     }
-                    if(ronde.getEersteTeam().equals(tweedePloeg) && ronde.getTweedeTeam().equals(eerstePloeg)){
-                        return true;
-                    }
-
                 }
             }
         }
         return false;
     }
-
-
 }
